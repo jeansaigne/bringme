@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: api (lint, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: '8.14.3'
+      - name: Lint (Checkstyle)
+        run: gradle --no-daemon checkstyleMain checkstyleTest
+      - name: Tests (unitaires + intégration Testcontainers)
+        run: gradle --no-daemon test
+      - name: Bilan des tests
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          t = f = e = s = 0
+          for path in glob.glob('build/test-results/test/*.xml'):
+              r = ET.parse(path).getroot()
+              t += int(r.get('tests')); f += int(r.get('failures')); e += int(r.get('errors')); s += int(r.get('skipped'))
+              print(f"{r.get('name')}: {r.get('tests')} tests, {r.get('failures')} échecs")
+          print(f"::notice title=Tests API::{t} tests, {f} échecs, {e} erreurs, {s} ignorés")
+          PY
+      - name: Build
+        run: gradle --no-daemon bootJar
+      - name: Rapports de tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-reports
+          path: api/build/reports
+          retention-days: 7
+
+  web:
+    name: web (lint, typecheck, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      VITE_API_URL: https://bringme-api.onrender.com
+      VITE_SUPABASE_URL: https://wlmkpjurwvuhopllduqz.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_STRIPE_PUBLISHABLE_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: bringme-api
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${DATABASE_USERNAME:bringme_api}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 1
+      connection-timeout: 10000
+      max-lifetime: 600000
+  mvc:
+    problemdetails:
+      enabled: true
+  jackson:
+    default-property-inclusion: always
+
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+bringme:
+  web-url: ${WEB_URL:http://localhost:5173}
+  pricing:
+    base-cents: 300
+    included-km: 2
+    per-km-cents: 50
+    per-kg-cents: 100
+    commission-rate: ${COMMISSION_RATE:0.20}
+    max-weight-kg: 30
+  supabase:
+    url: ${SUPABASE_URL:https://wlmkpjurwvuhopllduqz.supabase.co}
+    publishable-key: ${SUPABASE_PUBLISHABLE_KEY:sb_publishable_-j9wOax_KdXbnST2ZA5dYQ_nDrGHWyj}
+  stripe:
+    secret-key: ${STRIPE_SECRET_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+    api-version: ${STRIPE_API_VERSION:2025-12-15.clover}
+    api-base: https://api.stripe.com
+    webhook-tolerance-seconds: 300
+  handover:
+    max-attempts: 5
+  geocoder:
+    base-url: https://data.geopf.fr/geocodage
+    min-score: 0.4
+
+logging:
+  level:
+    app.bringme: INFO
