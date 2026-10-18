@@ -32,6 +32,18 @@ jobs:
         run: gradle --no-daemon checkstyleMain checkstyleTest
       - name: Tests (unitaires + intégration Testcontainers)
         run: gradle --no-daemon test
+      - name: Bilan des tests
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          t = f = e = s = 0
+          for path in glob.glob('build/test-results/test/*.xml'):
+              r = ET.parse(path).getroot()
+              t += int(r.get('tests')); f += int(r.get('failures')); e += int(r.get('errors')); s += int(r.get('skipped'))
+              print(f"{r.get('name')}: {r.get('tests')} tests, {r.get('failures')} échecs")
+          print(f"::notice title=Tests API::{t} tests, {f} échecs, {e} erreurs, {s} ignorés")
+          PY
       - name: Build
         run: gradle --no-daemon bootJar
       - name: Rapports de tests
