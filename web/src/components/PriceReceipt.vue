@@ -1,30 +1,20 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { euros, percent, kilometers } from '../lib/money'
+import { onMounted } from 'vue'
+import { euros, kilometers } from '../lib/money'
 import { loadPricing, pricingGrid } from '../lib/pricing'
 import { tierLabel } from '../lib/tiers'
-import { brand } from '../lib/theme'
 
 /**
- * Reçu transparent : ce que paie le client, et où va chaque euro.
- * `highlight` met en avant la ligne qui concerne la personne qui regarde.
+ * Encart de prix. Le client voit ce qu'il paie ; le coursier voit ce qu'il touche.
+ * La répartition plateforme / coursier n'est pas affichée.
  */
-const props = withDefaults(
-  defineProps<{
-    priceCents: number
-    commissionRate: number
-    commissionCents: number
-    courierAmountCents: number
-    distanceKm: number
-    sizeTier: string
-    highlight?: 'client' | 'courier'
-  }>(),
-  { highlight: 'client' },
-)
-
-const courierShare = computed(() =>
-  props.priceCents > 0 ? Math.round((props.courierAmountCents / props.priceCents) * 100) : 0,
-)
+defineProps<{
+  priceCents: number
+  courierAmountCents: number
+  distanceKm: number
+  sizeTier: string
+  highlight?: 'client' | 'courier'
+}>()
 
 onMounted(() => {
   loadPricing().catch(() => undefined)
@@ -53,50 +43,18 @@ onMounted(() => {
     <div class="my-3 border-t border-dashed border-accented" />
 
     <div class="flex items-baseline justify-between gap-4">
-      <span class="font-sans font-semibold text-highlighted">Payé par le client</span>
+      <span class="font-sans font-semibold text-highlighted">
+        {{ highlight === 'courier' ? 'Vous touchez' : 'Prix de la course' }}
+      </span>
       <span
-        class="tabular font-display font-bold text-highlighted"
-        :class="highlight === 'client' ? 'text-2xl' : 'text-lg'"
-      >{{ euros(priceCents) }}</span>
+        class="tabular font-display text-2xl font-bold"
+        :class="highlight === 'courier' ? 'text-primary' : 'text-highlighted'"
+      >{{ euros(highlight === 'courier' ? courierAmountCents : priceCents) }}</span>
     </div>
-
-    <div
-      class="mt-3 flex h-2.5 overflow-hidden rounded-full bg-accented"
-      role="img"
-      :aria-label="`${courierShare} % pour le coursier, ${100 - courierShare} % pour ${brand.name}`"
-    >
-      <div
-        class="bg-primary"
-        :style="{ width: `${courierShare}%` }"
-      />
-      <div class="flex-1 bg-neutral-400 dark:bg-neutral-600" />
-    </div>
-
-    <dl class="mt-3 space-y-1.5">
-      <div class="flex justify-between gap-4">
-        <dt class="flex items-center gap-2">
-          <span class="size-2.5 rounded-full bg-primary" />
-          Coursier · {{ courierShare }} %
-        </dt>
-        <dd
-          class="tabular"
-          :class="highlight === 'courier' ? 'font-display text-2xl font-bold text-primary' : 'font-semibold'"
-        >
-          {{ euros(courierAmountCents) }}
-        </dd>
-      </div>
-      <div class="flex justify-between gap-4">
-        <dt class="flex items-center gap-2">
-          <span class="size-2.5 rounded-full bg-neutral-400 dark:bg-neutral-600" />
-          {{ brand.name }} · {{ percent(commissionRate) }}
-        </dt>
-        <dd class="tabular">
-          {{ euros(commissionCents) }}
-        </dd>
-      </div>
-    </dl>
     <p class="mt-3 font-sans text-xs text-muted">
-      Le coursier n'est payé qu'une fois la livraison confirmée. En cas d'annulation, le client est remboursé.
+      {{ highlight === 'courier'
+        ? 'Versé une fois la livraison confirmée par le code de remise.'
+        : 'Payé à la commande. En cas d’annulation avant acceptation, vous êtes remboursé intégralement.' }}
     </p>
   </div>
 </template>

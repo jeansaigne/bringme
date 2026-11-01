@@ -83,7 +83,7 @@ bringme:
     max-attempts: 5
   geocoder:
     base-url: https://data.geopf.fr/geocodage
-    min-score: 0.4
+    min-score: 0.7
 
 logging:
   level:

@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AddressInput: typeof import('./components/AddressInput.vue')['default']
     AppLogo: typeof import('./components/AppLogo.vue')['default']
     CourseCard: typeof import('./components/CourseCard.vue')['default']
     EmptyState: typeof import('./components/EmptyState.vue')['default']
@@ -28,6 +29,7 @@ declare module 'vue' {
     UFormField: typeof import('./../node_modules/@nuxt/ui/dist/runtime/components/FormField.vue')['default']
     UIcon: typeof import('./../node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
     UInput: typeof import('./../node_modules/@nuxt/ui/dist/runtime/components/Input.vue')['default']
+    UInputMenu: typeof import('./../node_modules/@nuxt/ui/dist/runtime/components/InputMenu.vue')['default']
     UModal: typeof import('./../node_modules/@nuxt/ui/dist/runtime/components/Modal.vue')['default']
     UPinInput: typeof import('./../node_modules/@nuxt/ui/dist/runtime/components/PinInput.vue')['default']
     URadioGroup: typeof import('./../node_modules/@nuxt/ui/dist/runtime/components/RadioGroup.vue')['default']

@@ -10,6 +10,7 @@ public record Course(
         UUID clientId,
         UUID courierId,
         String itemDescription,
+        String instructions,
         String pickupAddress,
         double pickupLat,
         double pickupLng,
