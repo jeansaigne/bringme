@@ -7,3 +7,10 @@ export function euros(cents: number): string {
 export function percent(rate: number | string): string {
   return `${Math.round(Number(rate) * 1000) / 10} %`
 }
+
+const km = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
+/** « 3,4 km » */
+export function kilometers(distanceKm: number | string): string {
+  return `${km.format(Number(distanceKm))} km`
+}
