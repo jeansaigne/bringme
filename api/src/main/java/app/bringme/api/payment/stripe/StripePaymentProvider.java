@@ -42,11 +42,15 @@ public class StripePaymentProvider implements PaymentProvider {
     private final String secretKey;
     private final StripeSignatureVerifier signatureVerifier;
     private final ObjectMapper mapper;
+    private final List<String> checkoutPaymentMethods;
 
     public StripePaymentProvider(BringmeProperties props, ClientHttpRequestFactory requestFactory, ObjectMapper mapper, Clock clock) {
         BringmeProperties.Stripe cfg = props.stripe();
         this.secretKey = cfg.secretKey();
         this.mapper = mapper;
+        this.checkoutPaymentMethods = cfg.checkoutPaymentMethods() == null || cfg.checkoutPaymentMethods().isEmpty()
+                ? List.of("card")
+                : List.copyOf(cfg.checkoutPaymentMethods());
         this.signatureVerifier = new StripeSignatureVerifier(cfg.webhookSecret(), cfg.webhookToleranceSeconds(), clock);
         this.http = RestClient.builder()
                 .requestFactory(requestFactory)
@@ -62,6 +66,10 @@ public class StripePaymentProvider implements PaymentProvider {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("mode", "payment");
         form.add("locale", "fr");
+        // Liste explicite : la carte (Apple Pay et Google Pay passent par elle) + ce que la config ajoute (ex. paypal).
+        for (int i = 0; i < checkoutPaymentMethods.size(); i++) {
+            form.add("payment_method_types[" + i + "]", checkoutPaymentMethods.get(i));
+        }
         form.add("line_items[0][quantity]", "1");
         form.add("line_items[0][price_data][currency]", r.currency());
         form.add("line_items[0][price_data][unit_amount]", Integer.toString(r.amountCents()));

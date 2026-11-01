@@ -21,7 +21,7 @@ a { color: #0b6e4f; }
 .footer { text-align: center; color: #7a8088; font-size: .85rem; padding: 24px; }
 .card { background: #fff; border: 1px solid #e3e5e8; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
 label { display: block; font-weight: 600; margin-top: 12px; }
-input, textarea { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #c9cdd2; border-radius: 6px; font: inherit; }
+input, textarea, select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #c9cdd2; border-radius: 6px; font: inherit; }
 button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid #0b6e4f; background: #0b6e4f; color: #fff; cursor: pointer; }
 button.secondary { background: #fff; color: #0b6e4f; }
 button.danger { background: #b42318; border-color: #b42318; }

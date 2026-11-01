@@ -4,10 +4,7 @@ import app.bringme.api.course.Course;
 import app.bringme.api.course.CourseService;
 import app.bringme.api.security.CurrentUser;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
@@ -31,16 +28,16 @@ public class CourseController {
     public record QuoteRequest(
             @NotBlank @Size(min = 3, max = 300) String pickupAddress,
             @NotBlank @Size(min = 3, max = 300) String dropoffAddress,
-            @NotNull @DecimalMin(value = "0.01") @DecimalMax(value = "30") BigDecimal weightKg) {}
+            @NotBlank @Size(max = 8) String weightTier) {}
 
     public record CreateCourseRequest(
             @NotBlank @Size(max = 500) String itemDescription,
             @NotBlank @Size(min = 3, max = 300) String pickupAddress,
             @NotBlank @Size(min = 3, max = 300) String dropoffAddress,
-            @NotNull @DecimalMin(value = "0.01") @DecimalMax(value = "30") BigDecimal weightKg) {}
+            @NotBlank @Size(max = 8) String weightTier) {}
 
     public record QuoteResponse(
-            String pickupAddress, String dropoffAddress, BigDecimal distanceKm, BigDecimal weightKg, int priceCents,
+            String pickupAddress, String dropoffAddress, BigDecimal distanceKm, String weightTier, int priceCents,
             BigDecimal commissionRate, int commissionCents, int courierAmountCents) {}
 
     public record CreatedResponse(CourseView course, String checkoutUrl) {}
@@ -55,8 +52,8 @@ public class CourseController {
 
     @PostMapping("/quotes")
     public QuoteResponse quote(@Valid @RequestBody QuoteRequest req) {
-        CourseService.Quote q = service.quote(req.pickupAddress(), req.dropoffAddress(), req.weightKg());
-        return new QuoteResponse(q.pickup().label(), q.dropoff().label(), q.price().distanceKm(), q.price().weightKg(),
+        CourseService.Quote q = service.quote(req.pickupAddress(), req.dropoffAddress(), req.weightTier());
+        return new QuoteResponse(q.pickup().label(), q.dropoff().label(), q.price().distanceKm(), q.price().weightTier(),
                 q.price().priceCents(), q.price().commissionRate(), q.price().commissionCents(), q.price().courierAmountCents());
     }
 
@@ -65,7 +62,7 @@ public class CourseController {
     public CreatedResponse create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreateCourseRequest req) {
         CurrentUser user = CurrentUser.from(jwt);
         CourseService.CreatedCourse created = service.create(
-                user, req.itemDescription().trim(), req.pickupAddress(), req.dropoffAddress(), req.weightKg());
+                user, req.itemDescription().trim(), req.pickupAddress(), req.dropoffAddress(), req.weightTier());
         return new CreatedResponse(CourseView.of(created.course(), user.id(), null), created.checkoutUrl());
     }
 

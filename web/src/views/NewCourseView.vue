@@ -1,18 +1,26 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { api, type Quote } from '../lib/api'
+import { loadPricing, weightTiers } from '../lib/pricing'
+import { tierOption } from '../lib/tiers'
 import PriceSplit from '../components/PriceSplit.vue'
 
 const itemDescription = ref('')
 const pickupAddress = ref('')
 const dropoffAddress = ref('')
-const weightKg = ref(1)
+const weightTier = ref('S')
 const quote = ref<Quote | null>(null)
 const error = ref('')
 const busy = ref(false)
 
-watch([pickupAddress, dropoffAddress, weightKg], () => {
+watch([pickupAddress, dropoffAddress, weightTier], () => {
   quote.value = null
+})
+
+onMounted(() => {
+  loadPricing().catch((e) => {
+    error.value = e instanceof Error ? e.message : String(e)
+  })
 })
 
 async function estimate() {
@@ -22,7 +30,7 @@ async function estimate() {
     quote.value = await api.quote({
       pickupAddress: pickupAddress.value,
       dropoffAddress: dropoffAddress.value,
-      weightKg: weightKg.value,
+      weightTier: weightTier.value,
     })
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
@@ -39,7 +47,7 @@ async function payAndPublish() {
       itemDescription: itemDescription.value,
       pickupAddress: pickupAddress.value,
       dropoffAddress: dropoffAddress.value,
-      weightKg: weightKg.value,
+      weightTier: weightTier.value,
     })
     window.location.assign(checkoutUrl)
   } catch (e) {
@@ -78,16 +86,20 @@ async function payAndPublish() {
         required
         placeholder="5 place du Général de Gaulle, Lille"
       >
-      <label for="weight">Poids (kg, max 30)</label>
-      <input
+      <label for="weight">Poids</label>
+      <select
         id="weight"
-        v-model.number="weightKg"
-        type="number"
-        min="0.1"
-        max="30"
-        step="0.1"
+        v-model="weightTier"
         required
       >
+        <option
+          v-for="t in weightTiers"
+          :key="t.code"
+          :value="t.code"
+        >
+          {{ tierOption(weightTiers, t) }}
+        </option>
+      </select>
       <div class="row">
         <button
           type="submit"

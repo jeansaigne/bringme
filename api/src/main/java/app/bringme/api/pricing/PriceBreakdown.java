@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 /** Résultat du calcul de prix. Invariant : priceCents = commissionCents + courierAmountCents. */
 public record PriceBreakdown(
         BigDecimal distanceKm,
-        BigDecimal weightKg,
+        String weightTier,
         int priceCents,
         BigDecimal commissionRate,
         int commissionCents,

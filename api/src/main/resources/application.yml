@@ -9,10 +9,13 @@ spring:
     username: ${DATABASE_USERNAME:bringme_api}
     password: ${DATABASE_PASSWORD:}
     hikari:
+      # Pooler Supabase (Supavisor) : connexions recyclées avant que le pooler ou un NAT ne les coupe.
       maximum-pool-size: 4
       minimum-idle: 1
       connection-timeout: 10000
-      max-lifetime: 600000
+      idle-timeout: 60000
+      keepalive-time: 120000
+      max-lifetime: 300000
   mvc:
     problemdetails:
       enabled: true
@@ -39,9 +42,24 @@ bringme:
     base-cents: 300
     included-km: 2
     per-km-cents: 50
-    per-kg-cents: 100
     commission-rate: ${COMMISSION_RATE:0.20}
-    max-weight-kg: 30
+    weight-tiers:
+      - code: S
+        label: Petit
+        max-kg: 2
+        surcharge-cents: 100
+      - code: M
+        label: Moyen
+        max-kg: 5
+        surcharge-cents: 300
+      - code: L
+        label: Lourd
+        max-kg: 10
+        surcharge-cents: 600
+      - code: XL
+        label: Très lourd
+        max-kg: 30
+        surcharge-cents: 1000
   supabase:
     url: ${SUPABASE_URL:https://wlmkpjurwvuhopllduqz.supabase.co}
     publishable-key: ${SUPABASE_PUBLISHABLE_KEY:sb_publishable_-j9wOax_KdXbnST2ZA5dYQ_nDrGHWyj}
@@ -51,6 +69,8 @@ bringme:
     api-version: ${STRIPE_API_VERSION:2025-12-15.clover}
     api-base: https://api.stripe.com
     webhook-tolerance-seconds: 300
+    # Carte (Apple Pay / Google Pay inclus) ; ajouter paypal une fois activé dans le Dashboard Stripe.
+    checkout-payment-methods: ${CHECKOUT_PAYMENT_METHODS:card}
   handover:
     max-attempts: 5
   geocoder:
