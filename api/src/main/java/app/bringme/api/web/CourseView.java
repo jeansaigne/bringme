@@ -17,7 +17,7 @@ public record CourseView(
         String itemDescription,
         String pickupAddress,
         String dropoffAddress,
-        String weightTier,
+        String sizeTier,
         BigDecimal distanceKm,
         int priceCents,
         BigDecimal commissionRate,
@@ -61,7 +61,7 @@ public record CourseView(
             }
         }
         return new CourseView(c.id(), c.status(), role, List.copyOf(actions), c.itemDescription(), c.pickupAddress(),
-                c.dropoffAddress(), c.weightTier(), c.distanceKm(), c.priceCents(), c.commissionRate(), c.commissionCents(),
+                c.dropoffAddress(), c.sizeTier(), c.distanceKm(), c.priceCents(), c.commissionRate(), c.commissionCents(),
                 c.courierAmountCents(), c.currency(), handoverCode, c.payoutError(), c.createdAt(), c.paidAt(), c.acceptedAt(),
                 c.deliveredAt(), c.paidOutAt(), c.closedAt());
     }

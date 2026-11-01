@@ -1,5 +1,6 @@
 package app.bringme.api.profile;
 
+import app.bringme.api.pricing.Vehicle;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -19,10 +20,18 @@ public class ProfileRepository {
         jdbc.sql("insert into public.profiles (id, display_name) values (?, left(?, 80)) on conflict (id) do nothing")
                 .params(id, displayName)
                 .update();
-        return jdbc.sql("select id, display_name, stripe_account_id from public.profiles where id = ?")
+        return jdbc.sql("select id, display_name, stripe_account_id, vehicle from public.profiles where id = ?")
                 .param(id)
-                .query((rs, n) -> new Profile(rs.getObject("id", UUID.class), rs.getString("display_name"), rs.getString("stripe_account_id")))
+                .query((rs, n) -> new Profile(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("display_name"),
+                        rs.getString("stripe_account_id"),
+                        rs.getString("vehicle") == null ? null : Vehicle.valueOf(rs.getString("vehicle"))))
                 .single();
+    }
+
+    public void setVehicle(UUID id, Vehicle vehicle) {
+        jdbc.sql("update public.profiles set vehicle = ? where id = ?").params(vehicle.name(), id).update();
     }
 
     /** N'écrase jamais un compte existant (création idempotente). */

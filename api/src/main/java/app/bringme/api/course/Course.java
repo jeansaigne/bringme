@@ -16,7 +16,7 @@ public record Course(
         String dropoffAddress,
         double dropoffLat,
         double dropoffLng,
-        String weightTier,
+        String sizeTier,
         BigDecimal distanceKm,
         int priceCents,
         BigDecimal commissionRate,

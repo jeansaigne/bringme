@@ -10,7 +10,7 @@ export interface Course {
   itemDescription: string
   pickupAddress: string
   dropoffAddress: string
-  weightTier: string
+  sizeTier: string
   distanceKm: number
   priceCents: number
   commissionRate: number
@@ -26,32 +26,37 @@ export interface Quote {
   pickupAddress: string
   dropoffAddress: string
   distanceKm: number
-  weightTier: string
+  sizeTier: string
   priceCents: number
   commissionRate: number
   commissionCents: number
   courierAmountCents: number
 }
 
-export interface WeightTier {
+export type Vehicle = 'FOOT_BIKE' | 'CAR' | 'LARGE_CAR'
+
+export interface SizeTier {
   code: string
   label: string
+  description: string
   maxKg: number
-  surchargeCents: number
+  maxLengthCm: number
+  requiredVehicle: Vehicle
+  baseCents: number
+  perKmCents: number
 }
 
 export interface PricingGrid {
-  baseCents: number
   includedKm: number
-  perKmCents: number
   commissionRate: number
-  weightTiers: WeightTier[]
+  sizeTiers: SizeTier[]
 }
 
 export interface Me {
   id: string
   email: string
   displayName: string | null
+  vehicle: Vehicle | null
   courier: { accountId: string; transfersActive: boolean; transfersStatus: string } | null
 }
 
@@ -94,9 +99,9 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown):
 export const api = {
   me: () => request<Me>('GET', '/me'),
   pricing: () => request<PricingGrid>('GET', '/pricing'),
-  quote: (input: { pickupAddress: string; dropoffAddress: string; weightTier: string }) =>
+  quote: (input: { pickupAddress: string; dropoffAddress: string; sizeTier: string }) =>
     request<Quote>('POST', '/quotes', input),
-  createCourse: (input: { itemDescription: string; pickupAddress: string; dropoffAddress: string; weightTier: string }) =>
+  createCourse: (input: { itemDescription: string; pickupAddress: string; dropoffAddress: string; sizeTier: string }) =>
     request<{ course: Course; checkoutUrl: string }>('POST', '/courses', input),
   myCourses: () => request<Course[]>('GET', '/courses/mine'),
   availableCourses: () => request<Course[]>('GET', '/courses/available'),
@@ -105,6 +110,7 @@ export const api = {
   accept: (id: string) => request<Course>('POST', `/courses/${id}/accept`),
   deliver: (id: string, code: string) => request<Course>('POST', `/courses/${id}/deliver`, { code }),
   retryPayout: (id: string) => request<Course>('POST', `/courses/${id}/retry-payout`),
+  setVehicle: (vehicle: Vehicle) => request<Me>('POST', '/courier/vehicle', { vehicle }),
   createCourierAccount: () => request<{ accountId: string }>('POST', '/courier/account'),
   courierSession: () => request<{ clientSecret: string }>('POST', '/courier/account-session'),
   courierLoginLink: () => request<{ url: string }>('POST', '/courier/login-link'),

@@ -1,5 +1,6 @@
 package app.bringme.api.config;
 
+import app.bringme.api.pricing.Vehicle;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -9,11 +10,16 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record BringmeProperties(
         String webUrl, Pricing pricing, Supabase supabase, Stripe stripe, Handover handover, Geocoder geocoder) {
 
-    /** Grille tarifaire, en centimes. */
-    public record Pricing(int baseCents, int includedKm, int perKmCents, BigDecimal commissionRate, List<WeightTier> weightTiers) {}
+    /** Grille tarifaire, en centimes : chaque gabarit a son propre forfait et son propre prix au km. */
+    public record Pricing(int includedKm, BigDecimal commissionRate, List<SizeTier> sizeTiers) {}
 
-    /** Tranche de poids déclarée par le client, avec son supplément fixe. */
-    public record WeightTier(String code, String label, int maxKg, int surchargeCents) {}
+    /**
+     * Gabarit de l'objet, déterminé par le véhicule qu'il exige. Forfait jusqu'à {@code includedKm}, puis
+     * {@code perKmCents} par km commencé au-delà.
+     */
+    public record SizeTier(
+            String code, String label, String description, int maxKg, int maxLengthCm, Vehicle requiredVehicle,
+            int baseCents, int perKmCents) {}
 
     public record Supabase(String url, String publishableKey) {}
 

@@ -12,54 +12,56 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 class PricingPolicyTest {
 
-    private static final List<BringmeProperties.WeightTier> TIERS = List.of(
-            new BringmeProperties.WeightTier("S", "Petit", 2, 100),
-            new BringmeProperties.WeightTier("M", "Moyen", 5, 300),
-            new BringmeProperties.WeightTier("L", "Lourd", 10, 600),
-            new BringmeProperties.WeightTier("XL", "Très lourd", 30, 1000));
+    private static final List<BringmeProperties.SizeTier> TIERS = List.of(
+            new BringmeProperties.SizeTier("S", "Petit", "sac à dos", 5, 50, Vehicle.FOOT_BIKE, 400, 80),
+            new BringmeProperties.SizeTier("M", "Moyen", "coffre", 15, 150, Vehicle.CAR, 600, 100),
+            new BringmeProperties.SizeTier("L", "Grand", "banquette rabattue", 30, 200, Vehicle.LARGE_CAR, 1200, 120));
 
-    private static BringmeProperties.Pricing grid(String rate, List<BringmeProperties.WeightTier> tiers) {
-        return new BringmeProperties.Pricing(300, 2, 50, new BigDecimal(rate), tiers);
+    private static BringmeProperties.Pricing grid(String rate, List<BringmeProperties.SizeTier> tiers) {
+        return new BringmeProperties.Pricing(2, new BigDecimal(rate), tiers);
     }
 
     private final PricingPolicy policy = new PricingPolicy(grid("0.20", TIERS));
 
-    @ParameterizedTest(name = "{0} km, tranche {1} -> {2} cts")
+    @ParameterizedTest(name = "{0} km, gabarit {1} -> {2} cts")
     @CsvSource({
-        "0,      S,  400",   // base + petit
-        "2,      S,  400",   // 2 km pile : inclus
-        "2.0004, S,  400",   // arrondi au mètre, toujours inclus
-        "2.001,  S,  450",   // 1 m au-delà : 1 km commencé
-        "4.4,    M,  750",   // 3 km commencés + moyen
-        "3.38,   L,  1000",  // 2 km commencés + lourd
-        "10,     XL, 1700",  // 8 km commencés + très lourd
+        "0,      S, 400",    // forfait petit
+        "2,      S, 400",    // 2 km pile : inclus
+        "2.0004, S, 400",    // arrondi au mètre, toujours inclus
+        "2.001,  S, 480",    // 1 m au-delà : 1 km commencé à 0,80 €
+        "5.2,    S, 720",    // 4 km commencés
+        "4.4,    M, 900",    // forfait moyen + 3 km à 1 €
+        "10,     L, 2160",   // forfait grand + 8 km à 1,20 €
     })
     void appliesTheGrid(String km, String tier, int expectedCents) {
         PriceBreakdown p = policy.price(new BigDecimal(km), tier);
         assertThat(p.priceCents()).isEqualTo(expectedCents);
-        assertThat(p.weightTier()).isEqualTo(tier);
+        assertThat(p.sizeTier()).isEqualTo(tier);
     }
 
     @Test
     void splitsCommissionAndCourierShare() {
         PriceBreakdown p = policy.price(new BigDecimal("4.4"), "M");
-        assertThat(p.commissionCents()).isEqualTo(150);
-        assertThat(p.courierAmountCents()).isEqualTo(600);
+        assertThat(p.commissionCents()).isEqualTo(180);
+        assertThat(p.courierAmountCents()).isEqualTo(720);
         assertThat(p.commissionRate()).isEqualByComparingTo("0.20");
     }
 
     @Test
     void roundsCommissionHalfUpToTheCent() {
-        PriceBreakdown p = new PricingPolicy(grid("0.15", TIERS)).price(new BigDecimal("3"), "S");
-        // 450 * 0.15 = 67.5 -> 68
-        assertThat(p.commissionCents()).isEqualTo(68);
-        assertThat(p.courierAmountCents()).isEqualTo(382);
+        PricingPolicy policy1875 = new PricingPolicy(grid("0.1875", TIERS));
+        // 400 * 0.1875 = 75 (exact)
+        assertThat(policy1875.price(BigDecimal.ONE, "S").commissionCents()).isEqualTo(75);
+        // 600 * 0.1875 = 112.5 -> 113 (demi-centime arrondi au supérieur)
+        PriceBreakdown m = policy1875.price(BigDecimal.ONE, "M");
+        assertThat(m.commissionCents()).isEqualTo(113);
+        assertThat(m.courierAmountCents()).isEqualTo(487);
     }
 
     @Test
     void shareInvariantHoldsAcrossTheGrid() {
         for (int km = 0; km <= 40; km++) {
-            for (BringmeProperties.WeightTier t : TIERS) {
+            for (BringmeProperties.SizeTier t : TIERS) {
                 PriceBreakdown p = policy.price(new BigDecimal(km).add(new BigDecimal("0.37")), t.code());
                 assertThat(p.commissionCents() + p.courierAmountCents()).isEqualTo(p.priceCents());
                 assertThat(p.courierAmountCents()).isPositive();
@@ -68,21 +70,30 @@ class PricingPolicyTest {
     }
 
     @Test
+    void vehiclesCarryOnlyCompatibleSizes() {
+        assertThat(policy.tiersCarriedBy(Vehicle.FOOT_BIKE)).containsExactly("S");
+        assertThat(policy.tiersCarriedBy(Vehicle.CAR)).containsExactly("S", "M");
+        assertThat(policy.tiersCarriedBy(Vehicle.LARGE_CAR)).containsExactly("S", "M", "L");
+        assertThat(policy.canCarry(Vehicle.FOOT_BIKE, "M")).isFalse();
+        assertThat(policy.canCarry(Vehicle.CAR, "M")).isTrue();
+        assertThat(policy.canCarry(null, "S")).isFalse();
+        assertThat(policy.canCarry(Vehicle.LARGE_CAR, "XL")).isFalse();
+    }
+
+    @Test
     void rejectsInvalidInputs() {
         assertThatThrownBy(() -> policy.price(new BigDecimal("-0.1"), "S")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> policy.price(BigDecimal.ONE, "XXL")).isInstanceOf(UnknownWeightTierException.class);
-        assertThatThrownBy(() -> policy.price(BigDecimal.ONE, null)).isInstanceOf(UnknownWeightTierException.class);
+        assertThatThrownBy(() -> policy.price(BigDecimal.ONE, "XL")).isInstanceOf(UnknownSizeTierException.class);
+        assertThatThrownBy(() -> policy.price(BigDecimal.ONE, null)).isInstanceOf(UnknownSizeTierException.class);
     }
 
     @Test
     void rejectsInvalidConfiguration() {
         assertThatThrownBy(() -> new PricingPolicy(grid("1", TIERS))).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new PricingPolicy(grid("0.2", List.of()))).isInstanceOf(IllegalArgumentException.class);
-        List<BringmeProperties.WeightTier> unordered = List.of(
-                new BringmeProperties.WeightTier("M", "Moyen", 5, 300), new BringmeProperties.WeightTier("S", "Petit", 2, 100));
-        assertThatThrownBy(() -> new PricingPolicy(grid("0.2", unordered))).isInstanceOf(IllegalArgumentException.class);
-        List<BringmeProperties.WeightTier> duplicated = List.of(
-                new BringmeProperties.WeightTier("S", "Petit", 2, 100), new BringmeProperties.WeightTier("S", "Autre", 5, 300));
+        List<BringmeProperties.SizeTier> duplicated = List.of(TIERS.get(0), TIERS.get(0));
         assertThatThrownBy(() -> new PricingPolicy(grid("0.2", duplicated))).isInstanceOf(IllegalArgumentException.class);
+        List<BringmeProperties.SizeTier> noVehicle = List.of(new BringmeProperties.SizeTier("S", "Petit", "", 5, 50, null, 400, 80));
+        assertThatThrownBy(() -> new PricingPolicy(grid("0.2", noVehicle))).isInstanceOf(IllegalArgumentException.class);
     }
 }

@@ -1,15 +1,24 @@
-import type { WeightTier } from './api'
+import type { SizeTier, Vehicle } from './api'
 import { euros } from './money'
 
-/** « Moyen · 2 à 5 kg », avec la borne basse déduite de la tranche précédente. */
-export function tierRange(tiers: WeightTier[], code: string): string {
-  const index = tiers.findIndex((t) => t.code === code)
-  if (index < 0) return code
-  const tier = tiers[index]
-  const range = index === 0 ? `jusqu'à ${tier.maxKg} kg` : `${tiers[index - 1].maxKg} à ${tier.maxKg} kg`
-  return `${tier.label} · ${range}`
+export const vehicleLabels: Record<Vehicle, string> = {
+  FOOT_BIKE: 'À pied ou à vélo',
+  CAR: 'Voiture',
+  LARGE_CAR: 'Grande voiture ou utilitaire (objets jusqu’à 2 m)',
 }
 
-export function tierOption(tiers: WeightTier[], tier: WeightTier): string {
-  return `${tierRange(tiers, tier.code)} (+${euros(tier.surchargeCents)})`
+const capacity: Record<Vehicle, number> = { FOOT_BIKE: 1, CAR: 2, LARGE_CAR: 3 }
+
+export function tierLabel(tiers: SizeTier[], code: string): string {
+  return tiers.find((t) => t.code === code)?.label ?? code
+}
+
+/** « dès 4,00 € jusqu'à 2 km, puis 0,80 €/km » */
+export function tierPricing(tier: SizeTier, includedKm: number): string {
+  return `dès ${euros(tier.baseCents)} jusqu’à ${includedKm} km, puis ${euros(tier.perKmCents)}/km`
+}
+
+/** Gabarits qu'un véhicule peut transporter (même règle que l'API). */
+export function tiersCarriedBy(tiers: SizeTier[], vehicle: Vehicle): SizeTier[] {
+  return tiers.filter((t) => capacity[vehicle] >= capacity[t.requiredVehicle])
 }

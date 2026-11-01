@@ -7,11 +7,11 @@ import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Grille tarifaire publiée au front : la seule source des tranches, libellés et suppléments. */
+/** Grille tarifaire publiée au front : la seule source des gabarits, libellés et tarifs. */
 @RestController
 public class PricingController {
 
-    public record Grid(int baseCents, int includedKm, int perKmCents, BigDecimal commissionRate, List<BringmeProperties.WeightTier> weightTiers) {}
+    public record Grid(int includedKm, BigDecimal commissionRate, List<BringmeProperties.SizeTier> sizeTiers) {}
 
     private final PricingPolicy pricing;
 
@@ -22,6 +22,6 @@ public class PricingController {
     @GetMapping("/api/pricing")
     public Grid grid() {
         BringmeProperties.Pricing g = pricing.grid();
-        return new Grid(g.baseCents(), g.includedKm(), g.perKmCents(), g.commissionRate(), g.weightTiers());
+        return new Grid(g.includedKm(), g.commissionRate(), g.sizeTiers());
     }
 }

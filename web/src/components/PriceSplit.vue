@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { euros, percent } from '../lib/money'
-import { loadPricing, weightTiers } from '../lib/pricing'
-import { tierRange } from '../lib/tiers'
+import { loadPricing, pricingGrid } from '../lib/pricing'
+import { tierLabel } from '../lib/tiers'
 
 defineProps<{
   priceCents: number
@@ -10,7 +10,7 @@ defineProps<{
   commissionCents: number
   courierAmountCents: number
   distanceKm: number
-  weightTier: string
+  sizeTier: string
 }>()
 
 onMounted(() => {
@@ -26,8 +26,8 @@ onMounted(() => {
         <td>{{ Number(distanceKm).toFixed(2) }} km</td>
       </tr>
       <tr>
-        <td>Poids déclaré</td>
-        <td>{{ tierRange(weightTiers, weightTier) }}</td>
+        <td>Gabarit</td>
+        <td>{{ tierLabel(pricingGrid?.sizeTiers ?? [], sizeTier) }}</td>
       </tr>
       <tr>
         <td><strong>Prix payé par le client</strong></td>

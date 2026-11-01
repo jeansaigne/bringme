@@ -33,14 +33,14 @@ public class CourseRepository {
         return jdbc.sql("""
                 insert into public.courses (client_id, item_description,
                     pickup_address, pickup_lat, pickup_lng, dropoff_address, dropoff_lat, dropoff_lng,
-                    weight_tier, distance_km, price_cents, commission_rate, commission_cents, courier_amount_cents)
+                    size_tier, distance_km, price_cents, commission_rate, commission_cents, courier_amount_cents)
                 values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 returning *
                 """)
                 .params(c.clientId(), c.itemDescription(),
                         c.pickup().label(), c.pickup().lat(), c.pickup().lng(),
                         c.dropoff().label(), c.dropoff().lat(), c.dropoff().lng(),
-                        c.price().weightTier(), c.price().distanceKm(), c.price().priceCents(), c.price().commissionRate(),
+                        c.price().sizeTier(), c.price().distanceKm(), c.price().priceCents(), c.price().commissionRate(),
                         c.price().commissionCents(), c.price().courierAmountCents())
                 .query(CourseRepository::map)
                 .single();
@@ -67,13 +67,17 @@ public class CourseRepository {
                 .list();
     }
 
-    public List<Course> findAvailable(UUID excludedClientId) {
+    public List<Course> findAvailable(UUID excludedClientId, List<String> sizeTiers) {
+        if (sizeTiers.isEmpty()) {
+            return List.of();
+        }
         return jdbc.sql("""
                 select * from public.courses
-                where status = 'PAID' and courier_id is null and client_id <> ?
+                where status = 'PAID' and courier_id is null and client_id <> :client and size_tier in (:tiers)
                 order by created_at limit 50
                 """)
-                .param(excludedClientId)
+                .param("client", excludedClientId)
+                .param("tiers", sizeTiers)
                 .query(CourseRepository::map)
                 .list();
     }
@@ -162,7 +166,7 @@ public class CourseRepository {
                 rs.getString("dropoff_address"),
                 rs.getDouble("dropoff_lat"),
                 rs.getDouble("dropoff_lng"),
-                rs.getString("weight_tier"),
+                rs.getString("size_tier"),
                 rs.getBigDecimal("distance_km"),
                 rs.getInt("price_cents"),
                 rs.getBigDecimal("commission_rate"),
