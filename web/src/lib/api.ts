@@ -10,7 +10,7 @@ export interface Course {
   itemDescription: string
   pickupAddress: string
   dropoffAddress: string
-  weightKg: number
+  weightTier: string
   distanceKm: number
   priceCents: number
   commissionRate: number
@@ -26,11 +26,26 @@ export interface Quote {
   pickupAddress: string
   dropoffAddress: string
   distanceKm: number
-  weightKg: number
+  weightTier: string
   priceCents: number
   commissionRate: number
   commissionCents: number
   courierAmountCents: number
+}
+
+export interface WeightTier {
+  code: string
+  label: string
+  maxKg: number
+  surchargeCents: number
+}
+
+export interface PricingGrid {
+  baseCents: number
+  includedKm: number
+  perKmCents: number
+  commissionRate: number
+  weightTiers: WeightTier[]
 }
 
 export interface Me {
@@ -78,9 +93,10 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown):
 
 export const api = {
   me: () => request<Me>('GET', '/me'),
-  quote: (input: { pickupAddress: string; dropoffAddress: string; weightKg: number }) =>
+  pricing: () => request<PricingGrid>('GET', '/pricing'),
+  quote: (input: { pickupAddress: string; dropoffAddress: string; weightTier: string }) =>
     request<Quote>('POST', '/quotes', input),
-  createCourse: (input: { itemDescription: string; pickupAddress: string; dropoffAddress: string; weightKg: number }) =>
+  createCourse: (input: { itemDescription: string; pickupAddress: string; dropoffAddress: string; weightTier: string }) =>
     request<{ course: Course; checkoutUrl: string }>('POST', '/courses', input),
   myCourses: () => request<Course[]>('GET', '/courses/mine'),
   availableCourses: () => request<Course[]>('GET', '/courses/available'),

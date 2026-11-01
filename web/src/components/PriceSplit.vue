@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { euros, percent } from '../lib/money'
+import { loadPricing, weightTiers } from '../lib/pricing'
+import { tierRange } from '../lib/tiers'
 
 defineProps<{
   priceCents: number
@@ -7,8 +10,12 @@ defineProps<{
   commissionCents: number
   courierAmountCents: number
   distanceKm: number
-  weightKg: number
+  weightTier: string
 }>()
+
+onMounted(() => {
+  loadPricing().catch(() => undefined)
+})
 </script>
 
 <template>
@@ -20,7 +27,7 @@ defineProps<{
       </tr>
       <tr>
         <td>Poids déclaré</td>
-        <td>{{ weightKg }} kg</td>
+        <td>{{ tierRange(weightTiers, weightTier) }}</td>
       </tr>
       <tr>
         <td><strong>Prix payé par le client</strong></td>

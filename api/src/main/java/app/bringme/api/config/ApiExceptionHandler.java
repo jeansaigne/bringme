@@ -4,6 +4,7 @@ import app.bringme.api.course.IllegalTransitionException;
 import app.bringme.api.course.StaleCourseException;
 import app.bringme.api.geo.AddressNotFoundException;
 import app.bringme.api.payment.PaymentProviderException;
+import app.bringme.api.pricing.UnknownWeightTierException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -34,6 +35,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(AddressNotFoundException.class)
     ProblemDetail handle(AddressNotFoundException e) {
         return problem(HttpStatus.UNPROCESSABLE_ENTITY, "address_not_found", e.getMessage());
+    }
+
+    @ExceptionHandler(UnknownWeightTierException.class)
+    ProblemDetail handle(UnknownWeightTierException e) {
+        return problem(HttpStatus.BAD_REQUEST, "unknown_weight_tier", e.getMessage());
     }
 
     @ExceptionHandler(PaymentProviderException.class)

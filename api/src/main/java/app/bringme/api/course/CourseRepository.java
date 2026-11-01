@@ -33,14 +33,14 @@ public class CourseRepository {
         return jdbc.sql("""
                 insert into public.courses (client_id, item_description,
                     pickup_address, pickup_lat, pickup_lng, dropoff_address, dropoff_lat, dropoff_lng,
-                    weight_kg, distance_km, price_cents, commission_rate, commission_cents, courier_amount_cents)
+                    weight_tier, distance_km, price_cents, commission_rate, commission_cents, courier_amount_cents)
                 values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 returning *
                 """)
                 .params(c.clientId(), c.itemDescription(),
                         c.pickup().label(), c.pickup().lat(), c.pickup().lng(),
                         c.dropoff().label(), c.dropoff().lat(), c.dropoff().lng(),
-                        c.price().weightKg(), c.price().distanceKm(), c.price().priceCents(), c.price().commissionRate(),
+                        c.price().weightTier(), c.price().distanceKm(), c.price().priceCents(), c.price().commissionRate(),
                         c.price().commissionCents(), c.price().courierAmountCents())
                 .query(CourseRepository::map)
                 .single();
@@ -162,7 +162,7 @@ public class CourseRepository {
                 rs.getString("dropoff_address"),
                 rs.getDouble("dropoff_lat"),
                 rs.getDouble("dropoff_lng"),
-                rs.getBigDecimal("weight_kg"),
+                rs.getString("weight_tier"),
                 rs.getBigDecimal("distance_km"),
                 rs.getInt("price_cents"),
                 rs.getBigDecimal("commission_rate"),

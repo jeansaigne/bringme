@@ -69,16 +69,16 @@ public class CourseService {
 
     // ------------------------------------------------------------------ devis et création
 
-    public Quote quote(String pickupAddress, String dropoffAddress, BigDecimal weightKg) {
+    public Quote quote(String pickupAddress, String dropoffAddress, String weightTier) {
         GeoPoint pickup = geocoder.geocode(pickupAddress);
         GeoPoint dropoff = geocoder.geocode(dropoffAddress);
         BigDecimal distance = BigDecimal.valueOf(pickup.distanceKmTo(dropoff));
-        return new Quote(pickup, dropoff, pricing.price(distance, weightKg));
+        return new Quote(pickup, dropoff, pricing.price(distance, weightTier));
     }
 
-    public CreatedCourse create(CurrentUser user, String item, String pickupAddress, String dropoffAddress, BigDecimal weightKg) {
+    public CreatedCourse create(CurrentUser user, String item, String pickupAddress, String dropoffAddress, String weightTier) {
         profiles.getOrCreate(user.id(), user.email());
-        Quote quote = quote(pickupAddress, dropoffAddress, weightKg);
+        Quote quote = quote(pickupAddress, dropoffAddress, weightTier);
         Course course = tx.execute(s -> {
             Course c = courses.insert(new NewCourse(user.id(), item, quote.pickup(), quote.dropoff(), quote.price()));
             courses.logTransition(c.id(), null, c.status(), user.id().toString());
