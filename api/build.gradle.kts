@@ -18,6 +18,9 @@ repositories {
     mavenCentral()
 }
 
+// Testcontainers >= 1.21.4 : compatible avec Docker Engine 29 (API minimale 1.44) des runners GitHub actuels.
+extra["testcontainers.version"] = "1.21.4"
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")

@@ -1,38 +1,27 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
 import { session } from './lib/auth'
-import { supabase } from './lib/supabase'
-
-const router = useRouter()
-
-async function logout() {
-  await supabase.auth.signOut()
-  await router.push('/login')
-}
+import AccountMenu from './components/AccountMenu.vue'
 </script>
 
 <template>
   <header class="topbar">
-    <RouterLink
-      to="/"
-      class="brand"
-    >
-      BringMe
-    </RouterLink>
-    <nav v-if="session">
-      <RouterLink to="/courses/new">
-        Nouvelle course
-      </RouterLink>
-      <RouterLink to="/courier">
-        Espace coursier
-      </RouterLink>
-      <button
-        class="link"
-        @click="logout"
+    <div class="topbar-left">
+      <RouterLink
+        to="/"
+        class="brand"
       >
-        Déconnexion
-      </button>
-    </nav>
+        BringMe
+      </RouterLink>
+      <nav v-if="session">
+        <RouterLink to="/courses/new">
+          Nouvelle course
+        </RouterLink>
+        <RouterLink to="/courier">
+          Espace coursier
+        </RouterLink>
+      </nav>
+    </div>
+    <AccountMenu />
   </header>
   <main class="container">
     <RouterView />
