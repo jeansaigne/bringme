@@ -42,6 +42,10 @@ jobs:
               r = ET.parse(path).getroot()
               t += int(r.get('tests')); f += int(r.get('failures')); e += int(r.get('errors')); s += int(r.get('skipped'))
               print(f"{r.get('name')}: {r.get('tests')} tests, {r.get('failures')} échecs")
+              for case in r.iter('testcase'):
+                  for bad in list(case.iter('failure')) + list(case.iter('error')):
+                      msg = (bad.get('message') or bad.text or '').replace('\n', ' ')[:600]
+                      print(f"::error title={case.get('classname')}.{case.get('name')}::{msg}")
           print(f"::notice title=Tests API::{t} tests, {f} échecs, {e} erreurs, {s} ignorés")
           PY
       - name: Build
