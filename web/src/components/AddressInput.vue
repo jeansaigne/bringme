@@ -17,8 +17,14 @@ const failed = ref(false)
 let timer: ReturnType<typeof setTimeout> | undefined
 let controller: AbortController | undefined
 
+// À la sélection, le composant vide le terme de recherche puis affiche la valeur choisie :
+// un terme vide ne doit donc pas invalider la sélection.
+function select(value: string | null | undefined) {
+  model.value = value ?? ''
+}
+
 watch(searchTerm, (term) => {
-  if (term === model.value) return
+  if (term === '' || term === model.value) return
   model.value = ''
   clearTimeout(timer)
   controller?.abort()
@@ -54,8 +60,8 @@ onUnmounted(() => {
 <template>
   <div class="space-y-1">
     <UInputMenu
-      v-model="model"
       v-model:search-term="searchTerm"
+      :model-value="model"
       :items="items"
       :loading="loading"
       :icon="icon"
@@ -63,6 +69,7 @@ onUnmounted(() => {
       ignore-filter
       size="lg"
       class="w-full"
+      @update:model-value="select"
     >
       <template #empty>
         {{ searchTerm.trim().length < 3 ? 'Tapez au moins 3 caractères' : 'Aucune adresse précise trouvée : ajoutez le numéro' }}
