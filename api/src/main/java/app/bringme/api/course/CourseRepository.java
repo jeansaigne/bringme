@@ -31,13 +31,13 @@ public class CourseRepository {
 
     public Course insert(NewCourse c) {
         return jdbc.sql("""
-                insert into public.courses (client_id, item_description,
+                insert into public.courses (client_id, item_description, instructions,
                     pickup_address, pickup_lat, pickup_lng, dropoff_address, dropoff_lat, dropoff_lng,
                     size_tier, distance_km, price_cents, commission_rate, commission_cents, courier_amount_cents)
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 returning *
                 """)
-                .params(c.clientId(), c.itemDescription(),
+                .params(c.clientId(), c.itemDescription(), c.instructions(),
                         c.pickup().label(), c.pickup().lat(), c.pickup().lng(),
                         c.dropoff().label(), c.dropoff().lat(), c.dropoff().lng(),
                         c.price().sizeTier(), c.price().distanceKm(), c.price().priceCents(), c.price().commissionRate(),
@@ -160,6 +160,7 @@ public class CourseRepository {
                 rs.getObject("client_id", UUID.class),
                 rs.getObject("courier_id", UUID.class),
                 rs.getString("item_description"),
+                rs.getString("instructions"),
                 rs.getString("pickup_address"),
                 rs.getDouble("pickup_lat"),
                 rs.getDouble("pickup_lng"),

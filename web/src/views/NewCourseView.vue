@@ -6,8 +6,10 @@ import { tierPricing } from '../lib/tiers'
 import { euros } from '../lib/money'
 import { errorMessage } from '../lib/errors'
 import PriceReceipt from '../components/PriceReceipt.vue'
+import AddressInput from '../components/AddressInput.vue'
 
 const itemDescription = ref('')
+const instructions = ref('')
 const pickupAddress = ref('')
 const dropoffAddress = ref('')
 const sizeTier = ref('S')
@@ -25,7 +27,8 @@ const tierItems = computed(() =>
   })),
 )
 
-const addressesFilled = computed(() => pickupAddress.value.trim().length >= 5 && dropoffAddress.value.trim().length >= 5)
+// Une adresse n'a de valeur qu'une fois choisie dans les suggestions (voir AddressInput).
+const addressesFilled = computed(() => !!pickupAddress.value && !!dropoffAddress.value)
 const canPay = computed(() => !!quote.value && itemDescription.value.trim().length > 0 && !quoting.value)
 
 // Estimation automatique : on attend que la saisie se calme, et on ignore
@@ -64,6 +67,7 @@ async function payAndPublish() {
   try {
     const { checkoutUrl } = await api.createCourse({
       itemDescription: itemDescription.value,
+      instructions: instructions.value.trim() || undefined,
       pickupAddress: pickupAddress.value,
       dropoffAddress: dropoffAddress.value,
       sizeTier: sizeTier.value,
@@ -133,26 +137,20 @@ onUnmounted(() => clearTimeout(timer))
         label="Adresse de retrait"
         required
       >
-        <UInput
+        <AddressInput
           v-model="pickupAddress"
           icon="i-lucide-circle-dot"
           placeholder="12 rue Faidherbe, Lille"
-          autocomplete="off"
-          size="lg"
-          class="w-full"
         />
       </UFormField>
       <UFormField
         label="Adresse de livraison"
         required
       >
-        <UInput
+        <AddressInput
           v-model="dropoffAddress"
           icon="i-lucide-map-pin"
           placeholder="5 place du Général de Gaulle, Lille"
-          autocomplete="street-address"
-          size="lg"
-          class="w-full"
         />
       </UFormField>
     </section>
@@ -180,13 +178,32 @@ onUnmounted(() => clearTimeout(timer))
 
     <section class="space-y-4">
       <h2 class="font-display text-lg font-semibold text-highlighted">
-        4. Le prix, en toute transparence
+        4. Instructions supplémentaires
+      </h2>
+      <UFormField
+        label="Pour le coursier (facultatif)"
+        description="Code d’accès, étage, horaires, personne à demander… Visible uniquement par le coursier qui accepte la course."
+      >
+        <UTextarea
+          v-model="instructions"
+          :maxlength="1000"
+          :rows="3"
+          autoresize
+          placeholder="Digicode 4521B, 3e étage gauche. Je suis là après 18 h."
+          class="w-full"
+        />
+      </UFormField>
+    </section>
+
+    <section class="space-y-4">
+      <h2 class="font-display text-lg font-semibold text-highlighted">
+        5. Prix
       </h2>
       <p
         v-if="!addressesFilled"
         class="rounded-lg border border-dashed border-accented p-4 text-sm text-muted"
       >
-        Renseignez les deux adresses : le prix s’affiche ici, avec la part qui revient au coursier.
+        Choisissez les deux adresses dans les suggestions : le prix s’affiche ici.
       </p>
       <USkeleton
         v-else-if="quoting && !quote"

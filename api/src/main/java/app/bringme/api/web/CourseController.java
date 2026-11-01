@@ -32,6 +32,7 @@ public class CourseController {
 
     public record CreateCourseRequest(
             @NotBlank @Size(max = 500) String itemDescription,
+            @Size(max = 1000) String instructions,
             @NotBlank @Size(min = 3, max = 300) String pickupAddress,
             @NotBlank @Size(min = 3, max = 300) String dropoffAddress,
             @NotBlank @Size(max = 8) String sizeTier) {}
@@ -62,7 +63,8 @@ public class CourseController {
     public CreatedResponse create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreateCourseRequest req) {
         CurrentUser user = CurrentUser.from(jwt);
         CourseService.CreatedCourse created = service.create(
-                user, req.itemDescription().trim(), req.pickupAddress(), req.dropoffAddress(), req.sizeTier());
+                user, req.itemDescription().trim(), blankToNull(req.instructions()), req.pickupAddress(), req.dropoffAddress(),
+                req.sizeTier());
         return new CreatedResponse(CourseView.of(created.course(), user.id(), null), created.checkoutUrl());
     }
 
@@ -106,6 +108,10 @@ public class CourseController {
     public CourseView retryPayout(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
         CurrentUser user = CurrentUser.from(jwt);
         return view(user, service.retryPayout(user, id));
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
     }
 
     private CourseView view(CurrentUser user, Course c) {

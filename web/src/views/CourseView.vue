@@ -252,9 +252,31 @@ onUnmounted(() => timer && clearInterval(timer))
         </ol>
       </section>
 
+      <section
+        v-if="course.instructions"
+        class="space-y-3"
+      >
+        <h2 class="text-sm font-semibold tracking-wide text-muted uppercase">
+          Instructions du client
+        </h2>
+        <UAlert
+          color="neutral"
+          variant="subtle"
+          icon="i-lucide-message-square-text"
+          :description="course.instructions"
+          :ui="{ description: 'whitespace-pre-line text-highlighted' }"
+        />
+        <p
+          v-if="perspective === 'client'"
+          class="text-xs text-muted"
+        >
+          Visibles uniquement par le coursier qui accepte la course.
+        </p>
+      </section>
+
       <section class="space-y-3">
         <h2 class="text-sm font-semibold tracking-wide text-muted uppercase">
-          Répartition du prix
+          Prix
         </h2>
         <PriceReceipt
           v-bind="course"

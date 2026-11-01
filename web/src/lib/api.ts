@@ -8,6 +8,7 @@ export interface Course {
   role: 'client' | 'courier' | 'candidate'
   actions: string[]
   itemDescription: string
+  instructions: string | null
   pickupAddress: string
   dropoffAddress: string
   sizeTier: string
@@ -101,7 +102,7 @@ export const api = {
   pricing: () => request<PricingGrid>('GET', '/pricing'),
   quote: (input: { pickupAddress: string; dropoffAddress: string; sizeTier: string }) =>
     request<Quote>('POST', '/quotes', input),
-  createCourse: (input: { itemDescription: string; pickupAddress: string; dropoffAddress: string; sizeTier: string }) =>
+  createCourse: (input: { itemDescription: string; instructions?: string; pickupAddress: string; dropoffAddress: string; sizeTier: string }) =>
     request<{ course: Course; checkoutUrl: string }>('POST', '/courses', input),
   myCourses: () => request<Course[]>('GET', '/courses/mine'),
   availableCourses: () => request<Course[]>('GET', '/courses/available'),

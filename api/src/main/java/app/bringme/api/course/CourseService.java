@@ -76,11 +76,12 @@ public class CourseService {
         return new Quote(pickup, dropoff, pricing.price(distance, sizeTier));
     }
 
-    public CreatedCourse create(CurrentUser user, String item, String pickupAddress, String dropoffAddress, String sizeTier) {
+    public CreatedCourse create(
+            CurrentUser user, String item, String instructions, String pickupAddress, String dropoffAddress, String sizeTier) {
         profiles.getOrCreate(user.id(), user.email());
         Quote quote = quote(pickupAddress, dropoffAddress, sizeTier);
         Course course = tx.execute(s -> {
-            Course c = courses.insert(new NewCourse(user.id(), item, quote.pickup(), quote.dropoff(), quote.price()));
+            Course c = courses.insert(new NewCourse(user.id(), item, instructions, quote.pickup(), quote.dropoff(), quote.price()));
             courses.logTransition(c.id(), null, c.status(), user.id().toString());
             return c;
         });

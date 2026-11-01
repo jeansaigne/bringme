@@ -15,6 +15,7 @@ public record CourseView(
         String role,
         List<String> actions,
         String itemDescription,
+        String instructions,
         String pickupAddress,
         String dropoffAddress,
         String sizeTier,
@@ -60,7 +61,9 @@ public record CourseView(
                 }
             }
         }
-        return new CourseView(c.id(), c.status(), role, List.copyOf(actions), c.itemDescription(), c.pickupAddress(),
+        return new CourseView(c.id(), c.status(), role, List.copyOf(actions), c.itemDescription(),
+                // Instructions : le client (auteur) et le seul coursier ayant accepté la course.
+                "candidate".equals(role) ? null : c.instructions(), c.pickupAddress(),
                 c.dropoffAddress(), c.sizeTier(), c.distanceKm(), c.priceCents(), c.commissionRate(), c.commissionCents(),
                 c.courierAmountCents(), c.currency(), handoverCode, c.payoutError(), c.createdAt(), c.paidAt(), c.acceptedAt(),
                 c.deliveredAt(), c.paidOutAt(), c.closedAt());
