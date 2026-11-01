@@ -1,47 +1,66 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api, type Quote } from '../lib/api'
 import { loadPricing, pricingGrid } from '../lib/pricing'
 import { tierPricing } from '../lib/tiers'
-import PriceSplit from '../components/PriceSplit.vue'
+import { euros } from '../lib/money'
+import { errorMessage } from '../lib/errors'
+import PriceReceipt from '../components/PriceReceipt.vue'
 
 const itemDescription = ref('')
 const pickupAddress = ref('')
 const dropoffAddress = ref('')
 const sizeTier = ref('S')
 const quote = ref<Quote | null>(null)
+const quoting = ref(false)
+const quoteError = ref('')
 const error = ref('')
-const busy = ref(false)
+const paying = ref(false)
+
+const tierItems = computed(() =>
+  (pricingGrid.value?.sizeTiers ?? []).map((t) => ({
+    value: t.code,
+    label: t.label,
+    description: `${t.description} · ${tierPricing(t, pricingGrid.value?.includedKm ?? 0)}`,
+  })),
+)
+
+const addressesFilled = computed(() => pickupAddress.value.trim().length >= 5 && dropoffAddress.value.trim().length >= 5)
+const canPay = computed(() => !!quote.value && itemDescription.value.trim().length > 0 && !quoting.value)
+
+// Estimation automatique : on attend que la saisie se calme, et on ignore
+// les réponses arrivées après une saisie plus récente.
+let timer: ReturnType<typeof setTimeout> | undefined
+let requestId = 0
 
 watch([pickupAddress, dropoffAddress, sizeTier], () => {
   quote.value = null
-})
-
-onMounted(() => {
-  loadPricing().catch((e) => {
-    error.value = e instanceof Error ? e.message : String(e)
-  })
+  quoteError.value = ''
+  clearTimeout(timer)
+  if (!addressesFilled.value) return
+  timer = setTimeout(estimate, 700)
 })
 
 async function estimate() {
-  error.value = ''
-  busy.value = true
+  const id = ++requestId
+  quoting.value = true
   try {
-    quote.value = await api.quote({
+    const q = await api.quote({
       pickupAddress: pickupAddress.value,
       dropoffAddress: dropoffAddress.value,
       sizeTier: sizeTier.value,
     })
+    if (id === requestId) quote.value = q
   } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e)
+    if (id === requestId) quoteError.value = errorMessage(e)
   } finally {
-    busy.value = false
+    if (id === requestId) quoting.value = false
   }
 }
 
 async function payAndPublish() {
   error.value = ''
-  busy.value = true
+  paying.value = true
   try {
     const { checkoutUrl } = await api.createCourse({
       itemDescription: itemDescription.value,
@@ -51,99 +70,168 @@ async function payAndPublish() {
     })
     window.location.assign(checkoutUrl)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e)
-    busy.value = false
+    error.value = errorMessage(e)
+    paying.value = false
   }
 }
+
+onMounted(() => {
+  loadPricing().catch((e) => {
+    error.value = errorMessage(e)
+  })
+})
+onUnmounted(() => clearTimeout(timer))
 </script>
 
 <template>
-  <div class="card">
-    <h1>Nouvelle course</h1>
-    <p class="muted">
-      L'objet doit déjà être payé : le coursier ne fait que le récupérer et vous l'apporter.
-    </p>
-    <form @submit.prevent="estimate">
-      <label for="item">Quoi ?</label>
-      <input
-        id="item"
-        v-model="itemDescription"
-        maxlength="500"
-        required
-        placeholder="Colis Vinted au nom de Dupont"
-      >
-      <label for="pickup">Adresse de retrait</label>
-      <input
-        id="pickup"
-        v-model="pickupAddress"
-        required
-        placeholder="12 rue Faidherbe, Lille"
-      >
-      <label for="dropoff">Adresse de livraison</label>
-      <input
-        id="dropoff"
-        v-model="dropoffAddress"
-        required
-        placeholder="5 place du Général de Gaulle, Lille"
-      >
-      <fieldset class="tiers">
-        <legend>Gabarit de l’objet</legend>
-        <label
-          v-for="t in pricingGrid?.sizeTiers ?? []"
-          :key="t.code"
-          class="tier"
-          :class="{ selected: sizeTier === t.code }"
-        >
-          <input
-            v-model="sizeTier"
-            type="radio"
-            name="sizeTier"
-            :value="t.code"
-          >
-          <span>
-            <strong>{{ t.label }}</strong> — {{ t.description }}<br>
-            <span class="muted">{{ tierPricing(t, pricingGrid?.includedKm ?? 0) }}</span>
-          </span>
-        </label>
-        <p class="muted">
-          Plus de 2 m ou plus de 30 kg : non pris en charge pour l’instant.
-        </p>
-      </fieldset>
-      <div class="row">
-        <button
-          type="submit"
-          class="secondary"
-          :disabled="busy"
-        >
-          Estimer le prix
-        </button>
-      </div>
-    </form>
-  </div>
-
-  <div
-    v-if="quote"
-    class="card"
+  <form
+    class="space-y-8"
+    @submit.prevent="payAndPublish"
   >
-    <h2>Estimation</h2>
-    <p class="muted">
-      {{ quote.pickupAddress }} → {{ quote.dropoffAddress }}
-    </p>
-    <PriceSplit v-bind="quote" />
-    <div class="row">
-      <button
-        :disabled="busy || !itemDescription"
-        @click="payAndPublish"
+    <header>
+      <UButton
+        to="/"
+        icon="i-lucide-arrow-left"
+        label="Mes demandes"
+        variant="link"
+        color="neutral"
+        class="-ml-2.5 mb-2"
+      />
+      <h1 class="font-display text-3xl font-bold text-highlighted">
+        Nouvelle course
+      </h1>
+      <p class="text-muted">
+        L’objet doit déjà être payé : le coursier ne fait que le récupérer et vous l’apporter.
+      </p>
+    </header>
+
+    <section class="space-y-4">
+      <h2 class="font-display text-lg font-semibold text-highlighted">
+        1. Quoi ?
+      </h2>
+      <UFormField
+        label="Ce qu’il faut récupérer"
+        description="Précisez le nom ou la référence à donner sur place."
+        required
       >
-        Payer et publier
-      </button>
+        <UTextarea
+          v-model="itemDescription"
+          :maxlength="500"
+          :rows="2"
+          autoresize
+          placeholder="Colis Vinted au nom de Dupont, retrait n° 4821"
+          class="w-full"
+        />
+      </UFormField>
+    </section>
+
+    <section class="space-y-4">
+      <h2 class="font-display text-lg font-semibold text-highlighted">
+        2. D’où, vers où ?
+      </h2>
+      <UFormField
+        label="Adresse de retrait"
+        required
+      >
+        <UInput
+          v-model="pickupAddress"
+          icon="i-lucide-circle-dot"
+          placeholder="12 rue Faidherbe, Lille"
+          autocomplete="off"
+          size="lg"
+          class="w-full"
+        />
+      </UFormField>
+      <UFormField
+        label="Adresse de livraison"
+        required
+      >
+        <UInput
+          v-model="dropoffAddress"
+          icon="i-lucide-map-pin"
+          placeholder="5 place du Général de Gaulle, Lille"
+          autocomplete="street-address"
+          size="lg"
+          class="w-full"
+        />
+      </UFormField>
+    </section>
+
+    <section class="space-y-4">
+      <h2 class="font-display text-lg font-semibold text-highlighted">
+        3. Quelle taille ?
+      </h2>
+      <USkeleton
+        v-if="!tierItems.length"
+        class="h-40 w-full"
+      />
+      <URadioGroup
+        v-else
+        v-model="sizeTier"
+        :items="tierItems"
+        variant="card"
+        size="lg"
+        :ui="{ fieldset: 'gap-2' }"
+      />
+      <p class="text-sm text-muted">
+        Plus de 2 m ou plus de 30 kg : non pris en charge pour l’instant.
+      </p>
+    </section>
+
+    <section class="space-y-4">
+      <h2 class="font-display text-lg font-semibold text-highlighted">
+        4. Le prix, en toute transparence
+      </h2>
+      <p
+        v-if="!addressesFilled"
+        class="rounded-lg border border-dashed border-accented p-4 text-sm text-muted"
+      >
+        Renseignez les deux adresses : le prix s’affiche ici, avec la part qui revient au coursier.
+      </p>
+      <USkeleton
+        v-else-if="quoting && !quote"
+        class="h-56 w-full"
+      />
+      <UAlert
+        v-else-if="quoteError"
+        color="error"
+        variant="subtle"
+        icon="i-lucide-map-pin-off"
+        title="Estimation impossible"
+        :description="quoteError"
+      />
+      <PriceReceipt
+        v-else-if="quote"
+        v-bind="quote"
+        highlight="client"
+      />
+    </section>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-circle-alert"
+      :description="error"
+    />
+
+    <div class="sticky bottom-20 z-10 md:bottom-4">
+      <UButton
+        type="submit"
+        size="xl"
+        block
+        icon="i-lucide-lock"
+        :loading="paying"
+        :disabled="!canPay"
+        :label="quote ? `Payer ${euros(quote.priceCents)} et publier` : 'Payer et publier'"
+        class="shadow-lg"
+      />
+      <p
+        v-if="quote && !itemDescription.trim()"
+        class="mt-2 rounded bg-default/90 text-center text-xs text-muted"
+      >
+        Indiquez ce qu’il faut récupérer pour continuer.
+      </p>
     </div>
-  </div>
-
-  <p
-    v-if="error"
-    class="error"
-  >
-    {{ error }}
-  </p>
+  </form>
 </template>

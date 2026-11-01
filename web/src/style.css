@@ -1,42 +1,56 @@
-:root {
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  color: #1d2125;
-  background: #f6f7f9;
-  line-height: 1.5;
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/*
+ * Thème GivtMe.
+ * - brand : vert de marque, #0b6e4f = nuance 600 (teinte OKLCH 165).
+ * - neutres : stone (gris chaud) plutôt que le slate par défaut.
+ * - display : titres et montants forts ; mono : lignes du reçu.
+ */
+@theme static {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque Variable', 'Inter Variable', ui-sans-serif, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+
+  --color-brand-50: oklch(0.975 0.02 165);
+  --color-brand-100: oklch(0.95 0.045 165);
+  --color-brand-200: oklch(0.905 0.075 165);
+  --color-brand-300: oklch(0.835 0.105 165);
+  --color-brand-400: oklch(0.72 0.125 165);
+  --color-brand-500: oklch(0.58 0.12 165);
+  --color-brand-600: oklch(0.478 0.0975 165);
+  --color-brand-700: oklch(0.41 0.085 165);
+  --color-brand-800: oklch(0.345 0.07 165);
+  --color-brand-900: oklch(0.29 0.055 165);
+  --color-brand-950: oklch(0.2 0.04 165);
 }
-body { margin: 0; }
-.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 20px; background: #fff; border-bottom: 1px solid #e3e5e8; }
-.topbar-left { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
-.topbar nav { display: flex; gap: 16px; align-items: center; }
-.topbar nav a.router-link-exact-active { font-weight: 600; }
-.account { display: flex; align-items: center; gap: 10px; margin-left: auto; min-width: 0; }
-.avatar { width: 30px; height: 30px; border-radius: 50%; background: #0b6e4f; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
-.account-email { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; color: #3a4047; }
-.account-login { margin-left: auto; font-weight: 600; }
-button.small { padding: 5px 10px; font-size: .9rem; }
-@media (max-width: 520px) { .account-email { display: none; } }
-.brand { font-weight: 700; font-size: 1.2rem; text-decoration: none; color: #0b6e4f; }
-a { color: #0b6e4f; }
-.container { max-width: 760px; margin: 24px auto; padding: 0 16px; }
-.footer { text-align: center; color: #7a8088; font-size: .85rem; padding: 24px; }
-.card { background: #fff; border: 1px solid #e3e5e8; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-label { display: block; font-weight: 600; margin-top: 12px; }
-input, textarea, select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #c9cdd2; border-radius: 6px; font: inherit; }
-button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid #0b6e4f; background: #0b6e4f; color: #fff; cursor: pointer; }
-button.secondary { background: #fff; color: #0b6e4f; }
-button.danger { background: #b42318; border-color: #b42318; }
-button.link { background: none; border: none; color: #0b6e4f; padding: 0; text-decoration: underline; }
-button:disabled { opacity: .5; cursor: default; }
-.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-.error { color: #b42318; }
-.muted { color: #7a8088; }
-.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e7f4ee; color: #0b6e4f; font-size: .85rem; }
-.code { font-size: 2rem; letter-spacing: .3em; font-weight: 700; }
-table.split { width: 100%; border-collapse: collapse; }
-table.split td { padding: 4px 0; }
-table.split td:last-child { text-align: right; }
-fieldset.tiers { border: none; padding: 0; margin: 12px 0 0; }
-fieldset.tiers legend { font-weight: 600; margin-bottom: 6px; }
-label.tier { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; margin-top: 6px; padding: 8px 10px; border: 1px solid #e3e5e8; border-radius: 6px; cursor: pointer; }
-label.tier.selected { border-color: #0b6e4f; background: #f1f8f5; }
-label.tier input { width: auto; margin-top: 4px; }
+
+:root {
+  /* Le vert de marque (600) en clair, une nuance plus lumineuse en sombre. */
+  --ui-primary: var(--ui-color-primary-600);
+  --ui-radius: 0.5rem;
+  --ui-bg: var(--ui-color-neutral-50);
+}
+
+.dark {
+  --ui-primary: var(--ui-color-primary-400);
+  --ui-bg: var(--ui-color-neutral-950);
+}
+
+body {
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+.font-display {
+  letter-spacing: -0.02em;
+}
+
+/* Montants : chiffres de même largeur pour que les colonnes s'alignent. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barre d'onglets mobile : laisse la place à l'encoche des iPhone. */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
