@@ -223,7 +223,7 @@ class StripeWebhookIntegrationTest {
     private UUID insertCourse(String status, String paymentIntent) {
         return jdbc.sql("""
                 insert into public.courses (client_id, item_description, pickup_address, pickup_lat, pickup_lng,
-                    dropoff_address, dropoff_lat, dropoff_lng, weight_tier, distance_km, price_cents, commission_rate,
+                    dropoff_address, dropoff_lat, dropoff_lng, size_tier, distance_km, price_cents, commission_rate,
                     commission_cents, courier_amount_cents, status, stripe_payment_intent_id)
                 values (?, 'Colis', '1 rue A, Lille', 50.63, 3.06, '2 rue B, Lille', 50.64, 3.07, 'S', 1.2, 400, 0.20,
                     80, 320, ?::public.course_status, ?)

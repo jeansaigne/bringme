@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { api, type Quote } from '../lib/api'
-import { loadPricing, weightTiers } from '../lib/pricing'
-import { tierOption } from '../lib/tiers'
+import { loadPricing, pricingGrid } from '../lib/pricing'
+import { tierPricing } from '../lib/tiers'
 import PriceSplit from '../components/PriceSplit.vue'
 
 const itemDescription = ref('')
 const pickupAddress = ref('')
 const dropoffAddress = ref('')
-const weightTier = ref('S')
+const sizeTier = ref('S')
 const quote = ref<Quote | null>(null)
 const error = ref('')
 const busy = ref(false)
 
-watch([pickupAddress, dropoffAddress, weightTier], () => {
+watch([pickupAddress, dropoffAddress, sizeTier], () => {
   quote.value = null
 })
 
@@ -30,7 +30,7 @@ async function estimate() {
     quote.value = await api.quote({
       pickupAddress: pickupAddress.value,
       dropoffAddress: dropoffAddress.value,
-      weightTier: weightTier.value,
+      sizeTier: sizeTier.value,
     })
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
@@ -47,7 +47,7 @@ async function payAndPublish() {
       itemDescription: itemDescription.value,
       pickupAddress: pickupAddress.value,
       dropoffAddress: dropoffAddress.value,
-      weightTier: weightTier.value,
+      sizeTier: sizeTier.value,
     })
     window.location.assign(checkoutUrl)
   } catch (e) {
@@ -86,20 +86,29 @@ async function payAndPublish() {
         required
         placeholder="5 place du Général de Gaulle, Lille"
       >
-      <label for="weight">Poids</label>
-      <select
-        id="weight"
-        v-model="weightTier"
-        required
-      >
-        <option
-          v-for="t in weightTiers"
+      <fieldset class="tiers">
+        <legend>Gabarit de l’objet</legend>
+        <label
+          v-for="t in pricingGrid?.sizeTiers ?? []"
           :key="t.code"
-          :value="t.code"
+          class="tier"
+          :class="{ selected: sizeTier === t.code }"
         >
-          {{ tierOption(weightTiers, t) }}
-        </option>
-      </select>
+          <input
+            v-model="sizeTier"
+            type="radio"
+            name="sizeTier"
+            :value="t.code"
+          >
+          <span>
+            <strong>{{ t.label }}</strong> — {{ t.description }}<br>
+            <span class="muted">{{ tierPricing(t, pricingGrid?.includedKm ?? 0) }}</span>
+          </span>
+        </label>
+        <p class="muted">
+          Plus de 2 m ou plus de 30 kg : non pris en charge pour l’instant.
+        </p>
+      </fieldset>
       <div class="row">
         <button
           type="submit"

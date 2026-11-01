@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { api, type Course } from '../lib/api'
+import { api, type Course, type Me } from '../lib/api'
 import { euros } from '../lib/money'
 import { statusLabels } from '../lib/status'
 
 const mine = ref<Course[]>([])
 const available = ref<Course[]>([])
+const me = ref<Me | null>(null)
 const error = ref('')
 
 async function load() {
   try {
-    ;[mine.value, available.value] = await Promise.all([api.myCourses(), api.availableCourses()])
+    ;[mine.value, available.value, me.value] = await Promise.all([api.myCourses(), api.availableCourses(), api.me()])
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   }
@@ -55,10 +56,19 @@ onMounted(load)
   <section class="card">
     <h2>Courses disponibles</h2>
     <p
-      v-if="!available.length"
+      v-if="me && !me.vehicle"
       class="muted"
     >
-      Aucune course à prendre pour le moment.
+      Pour voir les courses à prendre, déclarez votre moyen de transport dans
+      <RouterLink to="/courier">
+        l’Espace coursier
+      </RouterLink>.
+    </p>
+    <p
+      v-else-if="!available.length"
+      class="muted"
+    >
+      Aucune course à prendre pour le moment avec votre moyen de transport.
     </p>
     <ul>
       <li

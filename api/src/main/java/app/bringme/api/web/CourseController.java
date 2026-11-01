@@ -28,16 +28,16 @@ public class CourseController {
     public record QuoteRequest(
             @NotBlank @Size(min = 3, max = 300) String pickupAddress,
             @NotBlank @Size(min = 3, max = 300) String dropoffAddress,
-            @NotBlank @Size(max = 8) String weightTier) {}
+            @NotBlank @Size(max = 8) String sizeTier) {}
 
     public record CreateCourseRequest(
             @NotBlank @Size(max = 500) String itemDescription,
             @NotBlank @Size(min = 3, max = 300) String pickupAddress,
             @NotBlank @Size(min = 3, max = 300) String dropoffAddress,
-            @NotBlank @Size(max = 8) String weightTier) {}
+            @NotBlank @Size(max = 8) String sizeTier) {}
 
     public record QuoteResponse(
-            String pickupAddress, String dropoffAddress, BigDecimal distanceKm, String weightTier, int priceCents,
+            String pickupAddress, String dropoffAddress, BigDecimal distanceKm, String sizeTier, int priceCents,
             BigDecimal commissionRate, int commissionCents, int courierAmountCents) {}
 
     public record CreatedResponse(CourseView course, String checkoutUrl) {}
@@ -52,8 +52,8 @@ public class CourseController {
 
     @PostMapping("/quotes")
     public QuoteResponse quote(@Valid @RequestBody QuoteRequest req) {
-        CourseService.Quote q = service.quote(req.pickupAddress(), req.dropoffAddress(), req.weightTier());
-        return new QuoteResponse(q.pickup().label(), q.dropoff().label(), q.price().distanceKm(), q.price().weightTier(),
+        CourseService.Quote q = service.quote(req.pickupAddress(), req.dropoffAddress(), req.sizeTier());
+        return new QuoteResponse(q.pickup().label(), q.dropoff().label(), q.price().distanceKm(), q.price().sizeTier(),
                 q.price().priceCents(), q.price().commissionRate(), q.price().commissionCents(), q.price().courierAmountCents());
     }
 
@@ -62,7 +62,7 @@ public class CourseController {
     public CreatedResponse create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreateCourseRequest req) {
         CurrentUser user = CurrentUser.from(jwt);
         CourseService.CreatedCourse created = service.create(
-                user, req.itemDescription().trim(), req.pickupAddress(), req.dropoffAddress(), req.weightTier());
+                user, req.itemDescription().trim(), req.pickupAddress(), req.dropoffAddress(), req.sizeTier());
         return new CreatedResponse(CourseView.of(created.course(), user.id(), null), created.checkoutUrl());
     }
 

@@ -3,13 +3,17 @@ package app.bringme.api.web;
 import app.bringme.api.config.ApiException;
 import app.bringme.api.payment.PaymentProvider;
 import app.bringme.api.payment.PaymentProviderException;
+import app.bringme.api.pricing.Vehicle;
 import app.bringme.api.profile.Profile;
 import app.bringme.api.profile.ProfileRepository;
 import app.bringme.api.security.CurrentUser;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,7 +21,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api")
 public class CourierController {
 
-    public record Me(String id, String email, String displayName, Courier courier) {}
+    public record Me(String id, String email, String displayName, Vehicle vehicle, Courier courier) {}
+
+    public record VehicleRequest(@NotNull Vehicle vehicle) {}
 
     public record Courier(String accountId, boolean transfersActive, String transfersStatus) {}
 
@@ -48,7 +54,15 @@ public class CourierController {
                 courier = new Courier(p.stripeAccountId(), false, "unknown");
             }
         }
-        return new Me(user.id().toString(), user.email(), p.displayName(), courier);
+        return new Me(user.id().toString(), user.email(), p.displayName(), p.vehicle(), courier);
+    }
+
+    @PostMapping("/courier/vehicle")
+    public Me setVehicle(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody VehicleRequest req) {
+        CurrentUser user = CurrentUser.from(jwt);
+        profiles.getOrCreate(user.id(), user.email());
+        profiles.setVehicle(user.id(), req.vehicle());
+        return me(jwt);
     }
 
     @PostMapping("/courier/account")

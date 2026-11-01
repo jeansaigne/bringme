@@ -12,9 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Grille du brief : base jusqu'à {@code includedKm}, puis un supplément par km commencé au-delà, plus un
- * supplément fixe selon la tranche de poids déclarée. Commission plateforme arrondie au centime le plus proche
- * (half-up). Calcul en entiers (centimes), aucune arithmétique flottante.
+ * Prix d'une course : forfait du gabarit jusqu'à {@code includedKm}, puis le prix au km du gabarit par km
+ * commencé au-delà. Commission plateforme arrondie au centime le plus proche (half-up). Calcul en entiers
+ * (centimes), aucune arithmétique flottante.
  */
 @Component
 public class PricingPolicy {
@@ -31,17 +31,18 @@ public class PricingPolicy {
         if (grid.commissionRate().signum() < 0 || grid.commissionRate().compareTo(BigDecimal.ONE) >= 0) {
             throw new IllegalArgumentException("Taux de commission hors de [0, 1[");
         }
-        List<BringmeProperties.WeightTier> tiers = grid.weightTiers();
+        if (grid.includedKm() < 0) {
+            throw new IllegalArgumentException("Distance incluse négative");
+        }
+        List<BringmeProperties.SizeTier> tiers = grid.sizeTiers();
         if (tiers == null || tiers.isEmpty()) {
-            throw new IllegalArgumentException("Aucune tranche de poids configurée");
+            throw new IllegalArgumentException("Aucun gabarit configuré");
         }
         Set<String> codes = new HashSet<>();
-        int previousMax = 0;
-        for (BringmeProperties.WeightTier t : tiers) {
-            if (!codes.add(t.code()) || t.maxKg() <= previousMax || t.surchargeCents() < 0) {
-                throw new IllegalArgumentException("Tranches de poids invalides (codes uniques, bornes croissantes)");
+        for (BringmeProperties.SizeTier t : tiers) {
+            if (!codes.add(t.code()) || t.requiredVehicle() == null || t.baseCents() <= 0 || t.perKmCents() < 0) {
+                throw new IllegalArgumentException("Gabarit invalide : " + t.code());
             }
-            previousMax = t.maxKg();
         }
     }
 
@@ -49,20 +50,25 @@ public class PricingPolicy {
         return grid;
     }
 
-    public List<BringmeProperties.WeightTier> weightTiers() {
-        return grid.weightTiers();
+    public Optional<BringmeProperties.SizeTier> tier(String code) {
+        return grid.sizeTiers().stream().filter(t -> t.code().equals(code)).findFirst();
     }
 
-    public Optional<BringmeProperties.WeightTier> tier(String code) {
-        return grid.weightTiers().stream().filter(t -> t.code().equals(code)).findFirst();
+    /** Codes des gabarits qu'un véhicule peut transporter. */
+    public List<String> tiersCarriedBy(Vehicle vehicle) {
+        return grid.sizeTiers().stream().filter(t -> vehicle.canCarry(t.requiredVehicle())).map(BringmeProperties.SizeTier::code).toList();
     }
 
-    public PriceBreakdown price(BigDecimal distanceKm, String weightTier) {
+    public boolean canCarry(Vehicle vehicle, String sizeTier) {
+        return vehicle != null && tier(sizeTier).map(t -> vehicle.canCarry(t.requiredVehicle())).orElse(false);
+    }
+
+    public PriceBreakdown price(BigDecimal distanceKm, String sizeTier) {
         Objects.requireNonNull(distanceKm, "distanceKm");
         if (distanceKm.signum() < 0) {
             throw new IllegalArgumentException("Distance négative");
         }
-        BringmeProperties.WeightTier tier = tier(weightTier).orElseThrow(() -> new UnknownWeightTierException(weightTier));
+        BringmeProperties.SizeTier tier = tier(sizeTier).orElseThrow(() -> new UnknownSizeTierException(sizeTier));
         BigDecimal distance = distanceKm.setScale(3, RoundingMode.HALF_UP);
 
         long extraKm = distance.subtract(BigDecimal.valueOf(grid.includedKm()))
@@ -70,8 +76,7 @@ public class PricingPolicy {
                 .setScale(0, RoundingMode.CEILING)
                 .longValueExact();
 
-        long price = grid.baseCents() + extraKm * grid.perKmCents() + tier.surchargeCents();
-        int priceCents = Math.toIntExact(price);
+        int priceCents = Math.toIntExact(tier.baseCents() + extraKm * tier.perKmCents());
         int commission = BigDecimal.valueOf(priceCents)
                 .multiply(grid.commissionRate())
                 .setScale(0, RoundingMode.HALF_UP)

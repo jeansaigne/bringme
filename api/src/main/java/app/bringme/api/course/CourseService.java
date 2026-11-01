@@ -69,16 +69,16 @@ public class CourseService {
 
     // ------------------------------------------------------------------ devis et création
 
-    public Quote quote(String pickupAddress, String dropoffAddress, String weightTier) {
+    public Quote quote(String pickupAddress, String dropoffAddress, String sizeTier) {
         GeoPoint pickup = geocoder.geocode(pickupAddress);
         GeoPoint dropoff = geocoder.geocode(dropoffAddress);
         BigDecimal distance = BigDecimal.valueOf(pickup.distanceKmTo(dropoff));
-        return new Quote(pickup, dropoff, pricing.price(distance, weightTier));
+        return new Quote(pickup, dropoff, pricing.price(distance, sizeTier));
     }
 
-    public CreatedCourse create(CurrentUser user, String item, String pickupAddress, String dropoffAddress, String weightTier) {
+    public CreatedCourse create(CurrentUser user, String item, String pickupAddress, String dropoffAddress, String sizeTier) {
         profiles.getOrCreate(user.id(), user.email());
-        Quote quote = quote(pickupAddress, dropoffAddress, weightTier);
+        Quote quote = quote(pickupAddress, dropoffAddress, sizeTier);
         Course course = tx.execute(s -> {
             Course c = courses.insert(new NewCourse(user.id(), item, quote.pickup(), quote.dropoff(), quote.price()));
             courses.logTransition(c.id(), null, c.status(), user.id().toString());
@@ -115,8 +115,13 @@ public class CourseService {
         return courses.findForUser(user.id());
     }
 
+    /** Courses ouvertes que le véhicule déclaré du coursier peut transporter. */
     public List<Course> available(CurrentUser user) {
-        return courses.findAvailable(user.id());
+        Profile courier = profiles.getOrCreate(user.id(), user.email());
+        if (courier.vehicle() == null) {
+            return List.of();
+        }
+        return courses.findAvailable(user.id(), pricing.tiersCarriedBy(courier.vehicle()));
     }
 
     /** Le code n'est visible que du client, tant que la remise n'a pas eu lieu. */
@@ -154,6 +159,12 @@ public class CourseService {
             throw ApiException.forbidden("Vous ne pouvez pas accepter votre propre course");
         }
         Profile courier = profiles.getOrCreate(user.id(), user.email());
+        if (courier.vehicle() == null) {
+            throw ApiException.conflict("vehicle_missing", "Déclarez d'abord votre moyen de transport dans l'Espace coursier");
+        }
+        if (!pricing.canCarry(courier.vehicle(), c.sizeTier())) {
+            throw ApiException.conflict("vehicle_incompatible", "Votre moyen de transport ne permet pas ce gabarit");
+        }
         if (courier.stripeAccountId() == null) {
             throw ApiException.conflict("payee_missing", "Terminez d'abord votre inscription coursier");
         }

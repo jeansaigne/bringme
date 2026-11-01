@@ -39,27 +39,35 @@ management:
 bringme:
   web-url: ${WEB_URL:http://localhost:5173}
   pricing:
-    base-cents: 300
     included-km: 2
-    per-km-cents: 50
     commission-rate: ${COMMISSION_RATE:0.20}
-    weight-tiers:
+    # Gabarit = véhicule requis. Calibrage : ~10 €/h net pour le coursier à vélo, ~13-15 €/h en voiture
+    # (carburant déduit), toujours sous les tarifs des coursiers pros (Stuart Lille dès 7,50 € à vélo).
+    size-tiers:
       - code: S
         label: Petit
-        max-kg: 2
-        surcharge-cents: 100
+        description: Jusqu'à 5 kg, tient dans un sac à dos (env. 50 × 35 × 25 cm)
+        max-kg: 5
+        max-length-cm: 50
+        required-vehicle: FOOT_BIKE
+        base-cents: 400
+        per-km-cents: 80
       - code: M
         label: Moyen
-        max-kg: 5
-        surcharge-cents: 300
+        description: Jusqu'à 15 kg et moins de 1,50 m, tient dans un coffre
+        max-kg: 15
+        max-length-cm: 150
+        required-vehicle: CAR
+        base-cents: 600
+        per-km-cents: 100
       - code: L
-        label: Lourd
-        max-kg: 10
-        surcharge-cents: 600
-      - code: XL
-        label: Très lourd
+        label: Grand
+        description: Jusqu'à 30 kg ou de 1,50 m à 2 m, banquette rabattue ou utilitaire
         max-kg: 30
-        surcharge-cents: 1000
+        max-length-cm: 200
+        required-vehicle: LARGE_CAR
+        base-cents: 1200
+        per-km-cents: 120
   supabase:
     url: ${SUPABASE_URL:https://wlmkpjurwvuhopllduqz.supabase.co}
     publishable-key: ${SUPABASE_PUBLISHABLE_KEY:sb_publishable_-j9wOax_KdXbnST2ZA5dYQ_nDrGHWyj}
